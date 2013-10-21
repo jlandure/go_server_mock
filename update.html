@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{.Title}}</title>
+</head>
+<body>
+<h1>{{.Title}}</h1>
+<form method="post" action="/optima/updateOpportunite/post">
+    <label for="uuid">UUID : </label><input type="text" id="uuid" name="uuid"  placeholder="EF3D5CD3-4DD7-43E8-8DA1-7E628F96B7E6"/><br/>
+    <label for="id_optima">Id Optima : </label><input type="text" id="id_optima" name="id_optima" placeholder="123"/><br/>
+    <label for="montant">Montant : </label><input type="text" id="montant" name="montant" placeholder="123000.0"/><br/>
+    <label for="avancement">Avancement : </label>
+    <select id="avancement" name="avancement">
+        <option value="En cours">En cours</option>
+        <option value="A définir">A définir</option>
+        <option value="En cours d'étude">En cours d'étude</option>
+    </select>
+    <br/>
+    <label for="date_derniere_modification_optima_date">Date de dernière modification optima (au format YYYYMMDDHHMM) : </label>
+    <input type="date" id="date_derniere_modification_optima_date" name="date_derniere_modification_optima_date" value=""/>
+    <input type="time" id="date_derniere_modification_optima_time" name="date_derniere_modification_optima_time" value=""/>
+    <br/>
+    <label for="date_envoi_optima_iplus_date">Date d'envoi optima vers iplus (au format YYYYMMDDHHMM) : </label>
+    <input type="date" id="date_envoi_optima_iplus_date" name="date_envoi_optima_iplus_date" value=""/>
+    <input type="time" id="date_envoi_optima_iplus_time" name="date_envoi_optima_iplus_time" value=""/>
+    <br/>
+    <input type="submit" value="Valider" />
+</form>
+</body>
+</html>
