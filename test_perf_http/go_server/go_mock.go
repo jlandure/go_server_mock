@@ -1,27 +1,28 @@
 package main
 
 import (
-	rest "github.com/ant0ine/go-json-rest"
+	rest "github.com/ant0ine/go-json-rest/rest"
 	simplejson "github.com/bitly/go-simplejson"
-	"net/http"
 	"io/ioutil"
+	"log"
+	"net/http"
 	"time"
 )
 
 func main() {
 
-	handler := rest.ResourceHandler{
-		EnableRelaxedContentType: true,
-		DisableJsonIndent: true,
-	}
-	handler.SetRoutes(
-		rest.Route{"POST", "/rest/c", postDataC},
-		rest.Route{"GET", "/rest/d", getDataD},
-		rest.Route{"PUT", "/rest/e/msg/:host", putDataE},
+	api := rest.NewApi()
+	api.Use(rest.DefaultDevStack...)
+	router, _ := rest.MakeRouter(
+		rest.Post("/rest/c", postDataC),
+		rest.Get("/rest/d", getDataD),
+		rest.Put("/rest/e/msg/:host", putDataE),
 	)
 	//TEST call to dataplus initData()
 	//log.Printf("Started on 9090")
-	http.ListenAndServe(":9090", &handler)
+
+	api.SetApp(router)
+	log.Fatal(http.ListenAndServe(":8080", api.MakeHandler()))
 
 }
 
@@ -30,16 +31,16 @@ var CompteurE int = 0
 
 func initData() {
 
-//	client := &http.Client{}
-//	//req, _ := http.NewRequest("POST", "http://localhost:9090/toto", strings.NewReader(string(json_data)))
-//	req, _ := http.NewRequest("GET", "http://dataplus-es1.cloudapp.net/dataplus4/im/_search", nil)
-//
-//	req.Header.Add("User-Agent", "Go-Client")
-//	req.Header.Add("Content-Type", "application/json");
-//	resp, err := client.Do(req)
-//	if (err != nil) {
-//		//log.Fatal(err)
-//	}
+	//	client := &http.Client{}
+	//	//req, _ := http.NewRequest("POST", "http://localhost:9090/toto", strings.NewReader(string(json_data)))
+	//	req, _ := http.NewRequest("GET", "http://dataplus-es1.cloudapp.net/dataplus4/im/_search", nil)
+	//
+	//	req.Header.Add("User-Agent", "Go-Client")
+	//	req.Header.Add("Content-Type", "application/json");
+	//	resp, err := client.Do(req)
+	//	if (err != nil) {
+	//		//log.Fatal(err)
+	//	}
 
 	//var b []byte;
 	//b, _ = ioutil.ReadAll(resp.Body);
@@ -55,14 +56,14 @@ func initData() {
 
 }
 
-func postDataC(w *rest.ResponseWriter, r *rest.Request) {
+func postDataC(w rest.ResponseWriter, r *rest.Request) {
 	xlogin := r.Header.Get("X-Login")
-	if (xlogin != "service.client@vecteurplus.com") {
+	if xlogin != "service.client@vecteurplus.com" {
 		rest.Error(w, "X-Login header required", 400)
 		return
 	}
-	var jsonBody []byte;
-	jsonBody, _ = ioutil.ReadAll(r.Body);
+	var jsonBody []byte
+	jsonBody, _ = ioutil.ReadAll(r.Body)
 	//if err != nil { err.Fatal(err) }
 	simpleDataFromBody, err2 := simplejson.NewJson(jsonBody)
 	if err2 != nil {
@@ -71,15 +72,15 @@ func postDataC(w *rest.ResponseWriter, r *rest.Request) {
 	}
 	//log.Printf("Data %s\n", simpleDataFromBody.Get("data").Get("call_a"))
 	//log.Printf("Data %s\n", (simpleDataFromBody.Get("data").Get("call_a") == nil))
-	if (simpleDataFromBody.Get("error") == nil || simpleDataFromBody.Get("error").MustString() != "Aucune") {
+	if simpleDataFromBody.Get("error") == nil || simpleDataFromBody.Get("error").MustString() != "Aucune" {
 		rest.Error(w, "error is not valued to \"Aucune\"", 400)
 		return
 	}
-	if (simpleDataFromBody.Get("data").Get("call_a").MustString() == "") {
+	if simpleDataFromBody.Get("data").Get("call_a").MustString() == "" {
 		rest.Error(w, "call_a is not valued", 400)
 		return
 	}
-	if (simpleDataFromBody.Get("data").Get("call_b").MustString() == "") {
+	if simpleDataFromBody.Get("data").Get("call_b").MustString() == "" {
 		rest.Error(w, "call_b is not valued", 400)
 		return
 	}
@@ -161,36 +162,36 @@ func postDataC(w *rest.ResponseWriter, r *rest.Request) {
         "objet_marche": "Constructiond'uneSallePolyvalente"
     }
 ]}`)
-	w.ResponseWriter.Header().Add("Content-Type", "application/json")
-	w.ResponseWriter.Write(b)
+	w.Header().Set("Content-Type", "application/json")
+	w.(http.ResponseWriter).Write(b)
 }
 
-func getDataD(w *rest.ResponseWriter, r *rest.Request) {
+func getDataD(w rest.ResponseWriter, r *rest.Request) {
 	//sort := r.PathParam("sort")
 	queries := r.URL.Query()
 	sort := queries.Get("sort")
-	if (sort == "") {
+	if sort == "" {
 		rest.Error(w, "sort required", 400)
 		return
 	}
 	filter := queries.Get("filter")
-	if (filter == "") {
+	if filter == "" {
 		rest.Error(w, "filter required", 400)
 		return
 	}
 	page := queries.Get("page")
-	if (page == "") {
+	if page == "" {
 		rest.Error(w, "page required", 400)
 		return
 	}
 	per_page := queries.Get("per_page")
-	if (per_page == "") {
+	if per_page == "" {
 		rest.Error(w, "per_page required", 400)
 		return
 	}
 
-	if (CompteurD%4 == 3) {
-		w.ResponseWriter.WriteHeader(http.StatusNotModified)
+	if CompteurD%4 == 3 {
+		w.WriteHeader(http.StatusNotModified)
 		CompteurD++
 		return
 	}
@@ -202,9 +203,8 @@ func getDataD(w *rest.ResponseWriter, r *rest.Request) {
 	//	uriLast := r.UriForWithParams("rest/d", map[string][]string {"sort":{"a"}, "filter":{"namedfilter"}, "page":{"50"}, "per_page":{"20"}})
 	//	link := fmt.Sprintf("%s; rel=\"next\", %s; rel=\"previous\", %s; rel=\"first\", %s; rel=\"last\"", uriNext, uriPrevious, uriFirst, uriLast)
 	//	log.Printf("%s", uriNext)
-	w.ResponseWriter.Header().Add("link", "<http://localhost:9090/rest/d?sort=a&filter=namedfilter&page=2&per_page=20>; rel=\"next\",<http://localhost:9090/rest/d?sort=a&filter=namedfilter&page=1&per_page=20>; rel=\"previous\", <http://localhost:9090/rest/d?sort=a&filter=namedfilter&page=1&per_page=100>; rel=\"first\", <http://localhost:9090/rest/d?sort=a&filter=namedfilter&page=50&per_page=20>; rel=\"last\"")
+	w.Header().Set("link", "<http://localhost:9090/rest/d?sort=a&filter=namedfilter&page=2&per_page=20>; rel=\"next\",<http://localhost:9090/rest/d?sort=a&filter=namedfilter&page=1&per_page=20>; rel=\"previous\", <http://localhost:9090/rest/d?sort=a&filter=namedfilter&page=1&per_page=100>; rel=\"first\", <http://localhost:9090/rest/d?sort=a&filter=namedfilter&page=50&per_page=20>; rel=\"last\"")
 	//	w.ResponseWriter.Header().Add("link",link)
-
 
 	b := []byte(`[
     {
@@ -282,18 +282,18 @@ func getDataD(w *rest.ResponseWriter, r *rest.Request) {
         "objet_marche": "Mocking Constructiond'uneSallePolyvalente"
     }
 ]`)
-	w.ResponseWriter.Header().Add("Content-Type", "application/json")
-	w.ResponseWriter.Write(b)
+	w.Header().Set("Content-Type", "application/json")
+	w.(http.ResponseWriter).Write(b)
 }
 
-func putDataE(w *rest.ResponseWriter, r *rest.Request) {
+func putDataE(w rest.ResponseWriter, r *rest.Request) {
 	host := r.PathParam("host")
-	if (host == "") {
+	if host == "" {
 		rest.Error(w, "host is empty", 400)
 		return
 	}
-	var jsonBody []byte;
-	jsonBody, _ = ioutil.ReadAll(r.Body);
+	var jsonBody []byte
+	jsonBody, _ = ioutil.ReadAll(r.Body)
 	//if err != nil { log.Fatal(err) }
 	simpleDataFromBody, err2 := simplejson.NewJson(jsonBody)
 	if err2 != nil {
@@ -301,20 +301,20 @@ func putDataE(w *rest.ResponseWriter, r *rest.Request) {
 		return
 	}
 
-	if (simpleDataFromBody.Get("message").MustString() == "") {
-		rest.Error(w, "message for " + host + " is not valued", 400)
+	if simpleDataFromBody.Get("message").MustString() == "" {
+		rest.Error(w, "message for "+host+" is not valued", 400)
 		return
 	}
-	if (simpleDataFromBody.Get("details").MustString() == "") {
-		rest.Error(w, "details for " + host + " is not valued", 400)
+	if simpleDataFromBody.Get("details").MustString() == "" {
+		rest.Error(w, "details for "+host+" is not valued", 400)
 		return
 	}
 
 	CompteurE++
-	if(CompteurE%2 == 0) {
+	if CompteurE%2 == 0 {
 		time.Sleep(500 * time.Millisecond)
 	}
 
 	defer r.Body.Close()
-	w.ResponseWriter.Header().Add("X-Host", host)
+	w.Header().Set("X-Host", host)
 }
